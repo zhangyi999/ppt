@@ -11,7 +11,6 @@ interface ValueProps {
 const Value: React.FC<ValueProps> = ({ value, decimals }) => {
   const [start, updateStart] = useState(0)
   const [end, updateEnd] = useState(0)
-
   useEffect(() => {
     if (typeof value === 'number') {
       updateStart(end)

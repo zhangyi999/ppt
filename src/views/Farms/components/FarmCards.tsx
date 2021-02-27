@@ -14,9 +14,17 @@ import useAllStakedValue, {
   StakedValue,
 } from '../../../hooks/useAllStakedValue'
 import useFarms from '../../../hooks/useFarms'
-import useSushi from '../../../hooks/useSushi'
-import { getEarned, getMasterChefContract } from '../../../sushi/utils'
+import useMay from '../../../hooks/useMay'
+import { getEarned, getMasterChefContract, getTvl, getApy } from '../../../may/utils'
+import { contractAddresses , addressMap} from '../../../may/lib/constants'
+
 import { bnToDec } from '../../../utils'
+
+
+// console.log({contractAddresses})
+// construction 
+
+const mayAddress = contractAddresses.may[128]
 
 interface FarmWithStakedValue extends Farm, StakedValue {
   apy: BigNumber
@@ -27,31 +35,46 @@ const FarmCards: React.FC = () => {
   const { account } = useWallet()
   const stakedValue = useAllStakedValue()
 
-  const sushiIndex = farms.findIndex(
-    ({ tokenSymbol }) => tokenSymbol === 'SUSHI',
+  const mayIndex = farms.findIndex(
+    ({ tokenSymbol }) => tokenSymbol === 'PPTToken',
   )
+  // console.log({
+  //   farms,
+  //   mayIndex,
+  //   stakedValue
+  // })
+  // getTvl, getApy
 
-  const sushiPrice =
-    sushiIndex >= 0 && stakedValue[sushiIndex]
-      ? stakedValue[sushiIndex].tokenPriceInWeth
+  const mayPrice =
+    mayIndex >= 0 && stakedValue[mayIndex]
+      ? stakedValue[mayIndex].tokenPriceInWeth
       : new BigNumber(0)
-
+  
   const BLOCKS_PER_YEAR = new BigNumber(2336000)
-  const SUSHI_PER_BLOCK = new BigNumber(1000)
-
+  const WAY_PER_BLOCK = new BigNumber(1000)
   const rows = farms.reduce<FarmWithStakedValue[][]>(
     (farmRows, farm, i) => {
       const farmWithStakedValue = {
         ...farm,
         ...stakedValue[i],
         apy: stakedValue[i]
-          ? sushiPrice
-              .times(SUSHI_PER_BLOCK)
+          ? mayPrice
+              .times(WAY_PER_BLOCK)
               .times(BLOCKS_PER_YEAR)
               .times(stakedValue[i].poolWeight)
               .div(stakedValue[i].totalWethValue)
           : null,
       }
+  // if ( stakedValue[i] ) {
+  //   console.log({
+  //     mayPrice: mayPrice.toString(),
+  //     WAY_PER_BLOCK: WAY_PER_BLOCK.toString(),
+  //     BLOCKS_PER_YEAR: BLOCKS_PER_YEAR.toString(),
+  //     poolWeight:stakedValue[i].poolWeight.toString(),
+  //     totalWethValue: stakedValue[i].poolWeight.toString()
+  //   })
+  // }
+  
       const newFarmRows = [...farmRows]
       if (newFarmRows[newFarmRows.length - 1].length === 3) {
         newFarmRows.push([farmWithStakedValue])
@@ -62,7 +85,7 @@ const FarmCards: React.FC = () => {
     },
     [[]],
   )
-
+    // console.log(rows)
   return (
     <StyledCards>
       {!!rows[0].length ? (
@@ -90,12 +113,15 @@ interface FarmCardProps {
 }
 
 const FarmCard: React.FC<FarmCardProps> = ({ farm }) => {
+  // console.log({farm})
   const [startTime, setStartTime] = useState(0)
   const [harvestable, setHarvestable] = useState(0)
+  const [apy, setApy] = useState(0)
+  const [tvl, setTvl] = useState('0')
 
   const { account } = useWallet()
   const { lpTokenAddress } = farm
-  const sushi = useSushi()
+  const may = useMay()
 
   const renderer = (countdownProps: CountdownRenderProps) => {
     const { hours, minutes, seconds } = countdownProps
@@ -111,28 +137,60 @@ const FarmCard: React.FC<FarmCardProps> = ({ farm }) => {
 
   useEffect(() => {
     async function fetchEarned() {
-      if (sushi) return
+      if (may) return
       const earned = await getEarned(
-        getMasterChefContract(sushi),
+        getMasterChefContract(may),
         lpTokenAddress,
         account,
       )
       setHarvestable(bnToDec(earned))
     }
-    if (sushi && account) {
+    if (may && account) {
       fetchEarned()
     }
-  }, [sushi, lpTokenAddress, account, setHarvestable])
+  }, [may, lpTokenAddress, account, setHarvestable])
+
+  useEffect(() => {
+   if ( !may ) return
+   async function apy( ) {
+     const Chef = getMasterChefContract(may)
+      const [tvl, apy, pair, token0, token1] = await Promise.all([
+        getTvl(Chef, farm.pid),
+        getApy(Chef, farm.pid),
+        farm.lpContract.methods.getReserves().call(),
+        farm.lpContract.methods.token0().call(),
+        farm.lpContract.methods.token1().call()
+      ])
+
+      // const [,tokenPrice] = await (may as any).contracts.route.methods.getAmountsOut(1e10, [mayAddress, addressMap.USDT]).call()
+      setApy(apy)
+      const [,token0P] = token0 === addressMap.USDT?1 : await (may as any).contracts.route.methods.getAmountsOut(1e10, [token0, addressMap.USDT]).call()
+      const [,token1P] = token1 === addressMap.USDT?1 : await (may as any).contracts.route.methods.getAmountsOut(1e10, [token1, addressMap.USDT]).call()
+      // console.log({tokenPrice, tvl, pair:[pair[0],pair[1]], token0P, token1P})
+      // var a:number = Number(tokenPrice);
+      const tvls = (new BigNumber(pair[0]).multipliedBy(token0P).div(1e28)).plus(new BigNumber(pair[1]).multipliedBy(token1P).div(1e28))
+      setTvl(tvls.toFixed(2))
+   }
+   apy( )
+  //   const earned = await getEarned(
+  //   getMasterChefContract(may),
+  //   lpTokenAddress,
+  //   account,
+  // )
+  // setHarvestable(bnToDec(earned))
+  }, [may, farm.pid])
 
   const poolActive = true // startTime * 1000 - Date.now() <= 0
-
+console.log({farm}, 'sdfsd')
   return (
     <StyledCardWrapper>
-      {farm.tokenSymbol === 'SUSHI' && <StyledCardAccent />}
+      {farm.tokenSymbol === 'PPTToken' && <StyledCardAccent />}
       <Card>
         <CardContent>
           <StyledContent>
-            <CardIcon>{farm.icon}</CardIcon>
+            <CardIcon>
+              <img style={{width:'95%'}} src={'/'+farm.icon+'.png'}/>
+            </CardIcon>
             <StyledTitle>{farm.name}</StyledTitle>
             <StyledDetails>
               <StyledDetail>Deposit {farm.lpToken.toUpperCase()}</StyledDetail>
@@ -154,13 +212,16 @@ const FarmCard: React.FC<FarmCardProps> = ({ farm }) => {
             <StyledInsight>
               <span>APY</span>
               <span>
-                {farm.apy
-                  ? `${farm.apy
-                      .times(new BigNumber(100))
-                      .toNumber()
-                      .toLocaleString('en-US')
-                      .slice(0, -1)}%`
-                  : 'Loading ...'}
+                {
+                // farm.apy
+                //   ? `${farm.apy
+                //       .times(new BigNumber(100))
+                //       .toNumber()
+                //       .toLocaleString('en-US')
+                //       .slice(0, -1)}%`
+                //   : 'Loading ...'
+                  apy*25
+                } %
               </span>
               {/* <span>
                 {farm.tokenAmount
@@ -174,6 +235,21 @@ const FarmCard: React.FC<FarmCardProps> = ({ farm }) => {
                   : '-'}{' '}
                 ETH
               </span> */}
+            </StyledInsight>
+            <StyledInsight>
+              <span>tvl</span>
+              <span>
+                $ {
+                // farm.apy
+                //   ? `${farm.apy
+                //       .times(new BigNumber(100))
+                //       .toNumber()
+                //       .toLocaleString('en-US')
+                //       .slice(0, -1)}%`
+                //   : 'Loading ...'
+                  tvl
+                }
+              </span>
             </StyledInsight>
           </StyledContent>
         </CardContent>
@@ -287,12 +363,12 @@ const StyledInsight = styled.div`
   box-sizing: border-box;
   border-radius: 8px;
   background: #fffdfa;
-  color: #aa9584;
+  color: #216fd4;
   width: 100%;
   margin-top: 12px;
   line-height: 32px;
   font-size: 13px;
-  border: 1px solid #e6dcd5;
+  border: 1px solid #d5dee6;
   text-align: center;
   padding: 0 12px;
 `

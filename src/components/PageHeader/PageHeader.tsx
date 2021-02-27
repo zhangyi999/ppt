@@ -6,14 +6,17 @@ import Container from '../Container'
 interface PageHeaderProps {
   icon: React.ReactNode
   subtitle?: string
-  title?: string
+  title?: string,
+  width?: string
 }
 
-const PageHeader: React.FC<PageHeaderProps> = ({ icon, subtitle, title }) => {
+const PageHeader: React.FC<PageHeaderProps> = ({ icon, subtitle, title, width }) => {
   return (
     <Container size="sm">
       <StyledPageHeader>
-        <StyledIcon>{icon}</StyledIcon>
+        <StyledIcon>
+          <img style={{width: width || '100px'}} src={'/'+icon+'.png'}/>  
+        </StyledIcon>
         <StyledTitle>{title}</StyledTitle>
         <StyledSubtitle>{subtitle}</StyledSubtitle>
       </StyledPageHeader>
@@ -36,7 +39,6 @@ const StyledIcon = styled.div`
   height: 120px;
   line-height: 120px;
   text-align: center;
-  width: 120px;
 `
 
 const StyledTitle = styled.h1`

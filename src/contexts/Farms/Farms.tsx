@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react'
 
 import { useWallet } from 'use-wallet'
-import useSushi from '../../hooks/useSushi'
+import useMay from '../../hooks/useMay'
 
 import { bnToDec } from '../../utils'
-import { getMasterChefContract, getEarned } from '../../sushi/utils'
-import { getFarms } from '../../sushi/utils'
+import { getMasterChefContract, getEarned } from '../../may/utils'
+import { getFarms } from '../../may/utils'
 
 import Context from './context'
 import { Farm } from './types'
@@ -13,10 +13,10 @@ import { Farm } from './types'
 const Farms: React.FC = ({ children }) => {
   const [unharvested, setUnharvested] = useState(0)
 
-  const sushi = useSushi()
+  const may = useMay()
   const { account } = useWallet()
 
-  const farms = getFarms(sushi)
+  const farms = getFarms(may)
 
   return (
     <Context.Provider

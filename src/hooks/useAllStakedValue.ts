@@ -10,8 +10,8 @@ import {
   getWethContract,
   getFarms,
   getTotalLPWethValue,
-} from '../sushi/utils'
-import useSushi from './useSushi'
+} from '../may/utils'
+import useMay from './useMay'
 import useBlock from './useBlock'
 
 export interface StakedValue {
@@ -25,12 +25,11 @@ export interface StakedValue {
 const useAllStakedValue = () => {
   const [balances, setBalance] = useState([] as Array<StakedValue>)
   const { account }: { account: string; ethereum: provider } = useWallet()
-  const sushi = useSushi()
-  const farms = getFarms(sushi)
-  const masterChefContract = getMasterChefContract(sushi)
-  const wethContact = getWethContract(sushi)
+  const may = useMay()
+  const farms = getFarms(may)
+  const masterChefContract = getMasterChefContract(may)
+  const wethContact = getWethContract(may)
   const block = useBlock()
-
   const fetchAllStakedValue = useCallback(async () => {
     const balances: Array<StakedValue> = await Promise.all(
       farms.map(
@@ -52,15 +51,15 @@ const useAllStakedValue = () => {
           ),
       ),
     )
-
+            // console.log({balances},'balances')
     setBalance(balances)
-  }, [account, masterChefContract, sushi])
+  }, [account, masterChefContract, may])
 
   useEffect(() => {
-    if (account && masterChefContract && sushi) {
+    if (account && masterChefContract && may) {
       fetchAllStakedValue()
     }
-  }, [account, block, masterChefContract, setBalance, sushi])
+  }, [account, block, masterChefContract, setBalance, may])
 
   return balances
 }
