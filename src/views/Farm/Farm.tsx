@@ -15,6 +15,7 @@ import Stake from './components/Stake'
 
 const Farm: React.FC = () => {
   const { farmId } = useParams()
+  // console.log({ farmId },'{ farmId }')
   const {
     pid,
     lpToken,

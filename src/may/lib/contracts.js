@@ -47,6 +47,7 @@ export class Contracts {
 
   setProvider(provider, networkId) {
     const setProvider = (contract, address) => {
+      // console.log({contract, address})
       contract.setProvider(provider)
       if (address) contract.options.address = address
       else console.error('Contract address not found in network', networkId)
@@ -60,6 +61,7 @@ export class Contracts {
 
     this.pools.forEach(
       ({ lpContract, lpAddress, tokenContract, tokenAddress }) => {
+        console.log({lpAddress, tokenAddress})
         setProvider(lpContract, lpAddress)
         setProvider(tokenContract, tokenAddress)
       },

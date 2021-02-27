@@ -13,10 +13,15 @@ const useApprove = (lpContract: Contract) => {
   const masterChefContract = getMasterChefContract(may)
 
   const handleApprove = useCallback(async () => {
+    
     try {
+      // console.log({
+      //   lpContract, masterChefContract, account
+      // })
       const tx = await approve(lpContract, masterChefContract, account)
       return tx
     } catch (e) {
+      console.log(e)
       return false
     }
   }, [account, lpContract, masterChefContract])

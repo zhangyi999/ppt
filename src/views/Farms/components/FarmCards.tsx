@@ -153,7 +153,8 @@ const FarmCard: React.FC<FarmCardProps> = ({ farm }) => {
   useEffect(() => {
    if ( !may ) return
    async function apy( ) {
-     const Chef = getMasterChefContract(may)
+     try {
+      const Chef = getMasterChefContract(may)
       const [tvl, apy, pair, token0, token1] = await Promise.all([
         getTvl(Chef, farm.pid),
         getApy(Chef, farm.pid),
@@ -170,6 +171,10 @@ const FarmCard: React.FC<FarmCardProps> = ({ farm }) => {
       // var a:number = Number(tokenPrice);
       const tvls = (new BigNumber(pair[0]).multipliedBy(token0P).div(1e28)).plus(new BigNumber(pair[1]).multipliedBy(token1P).div(1e28))
       setTvl(tvls.toFixed(2))
+     } catch {
+
+     }
+    
    }
    apy( )
   //   const earned = await getEarned(
@@ -200,7 +205,7 @@ console.log({farm}, 'sdfsd')
             <Button
               disabled={!poolActive}
               text={poolActive ? 'Select' : undefined}
-              to={`/farms/${farm.id}`}
+              to={`/farms/${farm.pid}`}
             >
               {!poolActive && (
                 <Countdown
